@@ -181,7 +181,7 @@ fn remember_app_index_url(app: &AppHandle) {
 
 fn build_main_window(handle: &AppHandle) -> Result<tauri::WebviewWindow, tauri::Error> {
     let app = handle.clone();
-    WebviewWindowBuilder::new(handle, "main", WebviewUrl::App("index.html".into()))
+    let window = WebviewWindowBuilder::new(handle, "main", WebviewUrl::App("index.html".into()))
         .title("Hammerhead")
         .inner_size(1280.0, 800.0)
         .min_inner_size(800.0, 500.0)
@@ -197,8 +197,55 @@ fn build_main_window(handle: &AppHandle) -> Result<tauri::WebviewWindow, tauri::
             }
             true
         })
-        .build()
+        .build()?;
+
+    install_permission_handler(&window);
+    Ok(window)
 }
+
+/// WebKitGTK emits `permission-request` when a page calls getUserMedia
+/// (joining a Sharkord voice channel) or wants notifications. Neither wry
+/// nor Tauri answers this signal by default, so WebKit denies the request
+/// and voice join silently fails. Additionally, media-stream support itself
+/// must be enabled on the WebKit settings. This:
+///   1. enables media streams + WebRTC (needed for mediasoup-client)
+///   2. grants media/notification permission requests, denies others
+#[cfg(target_os = "linux")]
+fn install_permission_handler(window: &tauri::WebviewWindow) {
+    use webkit2gtk::glib::prelude::*;
+    use webkit2gtk::PermissionRequestExt;
+    use webkit2gtk::SettingsExt;
+    use webkit2gtk::WebViewExt;
+
+    let _ = window.with_webview(|webview: tauri::webview::PlatformWebview| {
+        let view = webview.inner();
+
+        if let Some(settings) = view.settings() {
+            settings.set_enable_media(true);
+            settings.set_enable_media_stream(true);
+            settings.set_enable_webrtc(true);
+            settings.set_enable_encrypted_media(true);
+        }
+
+        view.connect_permission_request(|_, request| {
+            let is_media = request
+                .downcast_ref::<webkit2gtk::UserMediaPermissionRequest>()
+                .is_some();
+            let is_notification = request
+                .downcast_ref::<webkit2gtk::NotificationPermissionRequest>()
+                .is_some();
+            if is_media || is_notification {
+                request.allow();
+            } else {
+                request.deny();
+            }
+            true
+        });
+    });
+}
+
+#[cfg(not(target_os = "linux"))]
+fn install_permission_handler(_window: &tauri::WebviewWindow) {}
 
 pub fn run() {
     tauri::Builder::default()
