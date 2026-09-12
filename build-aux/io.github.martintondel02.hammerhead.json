@@ -10,49 +10,92 @@
     "--share=ipc",
     "--socket=fallback-x11",
     "--socket=wayland",
-    "--device=dri",
+    "--device=all",
     "--socket=pulseaudio",
     "--filesystem=xdg-run/pipewire-0",
     "--talk-name=org.freedesktop.portal.*",
     "--talk-name=org.freedesktop.Notifications",
-    "--talk-name=org.kde.StatusNotifierWatcher"
+    "--talk-name=org.kde.StatusNotifierWatcher",
+    "--env=ELECTRON_OZONE_PLATFORM_HINT=auto",
+    "--env=ELECTRON_DISABLE_SANDBOX=1"
   ],
-  "build-options": {
-    "append-path": "/usr/lib/sdk/rust-stable/bin"
-  },
-  "cleanup": ["/include", "/share/man"],
+  "cleanup": [
+    "/include",
+    "/share/man"
+  ],
   "modules": [
     {
       "name": "hammerhead",
       "buildsystem": "simple",
-      "build-options": {
-        "env": {
-          "CARGO_HOME": "/run/build/hammerhead/cargo"
-        }
-      },
       "build-commands": [
-        "cargo --offline fetch --manifest-path src-tauri/Cargo.toml --verbose",
-        "cargo --offline build --release --manifest-path src-tauri/Cargo.toml --verbose",
-        "install -Dm755 src-tauri/target/release/hammerhead -t /app/bin/",
-        "install -Dm644 src-tauri/icons/128x128.png /app/share/icons/hicolor/128x128/apps/io.github.martintondel02.hammerhead.png",
-        "install -Dm644 src-tauri/icons/128x128@2x.png /app/share/icons/hicolor/256x256/apps/io.github.martintondel02.hammerhead.png",
-        "install -Dm644 build-aux/io.github.martintondel02.hammerhead.desktop /app/share/applications/io.github.martintondel02.hammerhead.desktop",
-        "install -Dm644 io.github.martintondel02.hammerhead.metainfo.xml /app/share/metainfo/io.github.martintondel02.hammerhead.metainfo.xml"
+        "install -Dm755 hammerhead.sh /app/bin/hammerhead",
+        "mkdir -p /app/hammerhead",
+        "cp -r electron-dist/* /app/hammerhead/",
+        "rm -f /app/hammerhead/resources/default_app.asar",
+        "mkdir -p /app/hammerhead/resources/app",
+        "cp -r app-electron/main.js app-electron/preload.js app-electron/package.json /app/hammerhead/resources/app/",
+        "cp -r app-src /app/hammerhead/resources/app/src",
+        "install -Dm644 icons/32x32.png /app/share/icons/hicolor/32x32/apps/io.github.martintondel02.hammerhead.png",
+        "install -Dm644 icons/128x128.png /app/share/icons/hicolor/128x128/apps/io.github.martintondel02.hammerhead.png",
+        "install -Dm644 icons/128x128@2x.png /app/share/icons/hicolor/256x256/apps/io.github.martintondel02.hammerhead.png",
+        "install -Dm644 desktop/io.github.martintondel02.hammerhead.desktop /app/share/applications/io.github.martintondel02.hammerhead.desktop",
+        "install -Dm644 metainfo/io.github.martintondel02.hammerhead.metainfo.xml /app/share/metainfo/io.github.martintondel02.hammerhead.metainfo.xml"
       ],
       "sources": [
         {
           "type": "dir",
-          "path": "..",
+          "path": "../electron/node_modules/electron/dist",
+          "dest": "electron-dist"
+        },
+        {
+          "type": "dir",
+          "path": "../electron",
+          "dest": "app-electron",
           "skip": [
-            "src-tauri/target",
-            ".git",
-            ".flatpak-builder",
-            "build-dir",
-            "repo",
-            "node_modules"
+            "node_modules",
+            "package-lock.json"
           ]
         },
-        "cargo-sources.json"
+        {
+          "type": "dir",
+          "path": "../src",
+          "dest": "app-src"
+        },
+        {
+          "type": "file",
+          "path": "../src-tauri/icons/32x32.png",
+          "dest": "icons",
+          "dest-filename": "32x32.png"
+        },
+        {
+          "type": "file",
+          "path": "../src-tauri/icons/128x128.png",
+          "dest": "icons",
+          "dest-filename": "128x128.png"
+        },
+        {
+          "type": "file",
+          "path": "../src-tauri/icons/128x128@2x.png",
+          "dest": "icons",
+          "dest-filename": "128x128@2x.png"
+        },
+        {
+          "type": "file",
+          "path": "io.github.martintondel02.hammerhead.desktop",
+          "dest": "desktop",
+          "dest-filename": "io.github.martintondel02.hammerhead.desktop"
+        },
+        {
+          "type": "file",
+          "path": "../io.github.martintondel02.hammerhead.metainfo.xml",
+          "dest": "metainfo",
+          "dest-filename": "io.github.martintondel02.hammerhead.metainfo.xml"
+        },
+        {
+          "type": "file",
+          "path": "hammerhead.sh",
+          "dest-filename": "hammerhead.sh"
+        }
       ]
     }
   ]

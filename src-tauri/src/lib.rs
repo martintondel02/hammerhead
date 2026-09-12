@@ -185,6 +185,17 @@ fn build_main_window(handle: &AppHandle) -> Result<tauri::WebviewWindow, tauri::
         .title("Hammerhead")
         .inner_size(1280.0, 800.0)
         .min_inner_size(800.0, 500.0)
+        // WebKitGTK's default UA is not recognized by mediasoup-client's
+        // detectDevice(): it has no Chrome/Firefox token and lacks the
+        // Macintosh+WebKit Safari pattern, so Sharkord's voice engine
+        // (mediasoup-client) throws "device not supported". WebKitGTK IS
+        // WebKit, so present the canonical Safari UA; mediasoup then uses
+        // its Safari12 handler, which is correct for this engine.
+        .user_agent(
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) \
+             AppleWebKit/605.1.15 (KHTML, like Gecko) \
+             Version/17.4 Safari/605.1.15 Hammerhead",
+        )
         .on_navigation(move |url| {
             let is_app_url = url.scheme() == "tauri"
                 || url.scheme() == "about"
@@ -197,10 +208,56 @@ fn build_main_window(handle: &AppHandle) -> Result<tauri::WebviewWindow, tauri::
             }
             true
         })
+        .initialization_script(include_str!("../../src/diagnostics.js"))
         .build()?;
 
     install_permission_handler(&window);
     Ok(window)
+}
+
+/// Grab the diagnostics buffer from the web page and write it to
+/// ~/Downloads/hammerhead-diagnostics.log (or the flatpak-visible home).
+/// Never blocks the main thread: the JS result is written to disk from
+/// inside the eval callback, which itself runs on the GTK main loop.
+#[tauri::command]
+fn dump_diagnostics(app: AppHandle) -> Result<String, String> {
+    let window = app
+        .get_webview_window("main")
+        .ok_or("main window missing")?;
+    let downloads = dirs_or_fallback(&app);
+    let path = downloads.join("hammerhead-diagnostics.log");
+    let shown_path = path.display().to_string();
+    let shown_path_cb = shown_path.clone();
+    let window_for_cb = window.clone();
+
+    window
+        .eval_with_callback(
+            "window.__hammerheadDiagnostics ? window.__hammerheadDiagnostics() : 'diagnostics script not present'",
+            move |content: String| {
+                let _ = std::fs::write(&path, &content);
+                let _ = window_for_cb.eval(&format!(
+                    "console.warn('Hammerhead: diagnostics ({} bytes) written to {}')",
+                    content.len(),
+                    shown_path_cb
+                ));
+                println!(
+                    "--- hammerhead diagnostics ({len} bytes) -> {shown_path_cb} ---",
+                    len = content.len()
+                );
+            },
+        )
+        .map_err(|e| e.to_string())?;
+    Ok(format!("Collecting diagnostics; will write to {shown_path}"))
+}
+
+fn dirs_or_fallback(app: &AppHandle) -> PathBuf {
+    let home = std::env::var("HOME").unwrap_or_else(|_| ".".into());
+    let downloads = PathBuf::from(&home).join("Downloads");
+    if downloads.is_dir() {
+        return downloads;
+    }
+    let _ = app;
+    PathBuf::from(&home)
 }
 
 /// WebKitGTK emits `permission-request` when a page calls getUserMedia
@@ -210,6 +267,8 @@ fn build_main_window(handle: &AppHandle) -> Result<tauri::WebviewWindow, tauri::
 /// must be enabled on the WebKit settings. This:
 ///   1. enables media streams + WebRTC (needed for mediasoup-client)
 ///   2. grants media/notification permission requests, denies others
+///   3. enables devtools (right-click -> Inspect Element) for diagnosing
+///      web client issues on user servers
 #[cfg(target_os = "linux")]
 fn install_permission_handler(window: &tauri::WebviewWindow) {
     use webkit2gtk::glib::prelude::*;
@@ -225,6 +284,7 @@ fn install_permission_handler(window: &tauri::WebviewWindow) {
             settings.set_enable_media_stream(true);
             settings.set_enable_webrtc(true);
             settings.set_enable_encrypted_media(true);
+            settings.set_enable_developer_extras(true);
         }
 
         view.connect_permission_request(|_, request| {
@@ -265,7 +325,8 @@ pub fn run() {
             normalize_url,
             connect_server,
             show_picker,
-            current_host
+            current_host,
+            dump_diagnostics
         ])
         .setup(|app| {
             use tauri::menu::{MenuBuilder, MenuItem};
@@ -273,10 +334,18 @@ pub fn run() {
                 MenuItem::with_id(app, "picker", "Server picker", true, Some("CmdOrCtrl+Shift+H"))?;
             let reload_item =
                 MenuItem::with_id(app, "reload", "Reload page", true, Some("CmdOrCtrl+R"))?;
+            let diagnostics_item = MenuItem::with_id(
+                app,
+                "diagnostics",
+                "Save diagnostics log (Ctrl+Shift+D)",
+                true,
+                Some("CmdOrCtrl+Shift+D"),
+            )?;
             let quit_item = MenuItem::with_id(app, "quit", "Quit", true, Some("CmdOrCtrl+Q"))?;
             let menu = MenuBuilder::new(app)
                 .item(&picker_item)
                 .item(&reload_item)
+                .item(&diagnostics_item)
                 .separator()
                 .item(&quit_item)
                 .build()?;
@@ -295,6 +364,11 @@ pub fn run() {
                 "reload" => {
                     if let Some(window) = app.get_webview_window("main") {
                         let _ = window.eval("location.reload()");
+                    }
+                }
+                "diagnostics" => {
+                    if let Err(e) = dump_diagnostics(app.clone()) {
+                        eprintln!("diagnostics failed: {e}");
                     }
                 }
                 "quit" => {

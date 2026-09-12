@@ -1,6 +1,12 @@
-const { invoke } = window.__TAURI__.core;
-const opener = window.__TAURI__.opener;
-
+const bridge = window.hammerhead
+  ? window.hammerhead
+  : {
+      listServers: () => window.__TAURI__.core.invoke('list_servers'),
+      addServer: (name, url) => window.__TAURI__.core.invoke('add_server', { name, url }),
+      removeServer: (id) => window.__TAURI__.core.invoke('remove_server', { id }),
+      connectServer: (url) => window.__TAURI__.core.invoke('connect_server', { url }),
+      openExternal: (url) => window.__TAURI__.opener.openUrl(url),
+    };
 const listEl = document.getElementById('server-list');
 const emptyEl = document.getElementById('empty-state');
 const form = document.getElementById('add-form');
@@ -52,7 +58,7 @@ function renderRow(server) {
   remove.className = 'danger';
   remove.textContent = 'Remove';
   remove.addEventListener('click', async () => {
-    await invoke('remove_server', { id: server.id });
+    await bridge.removeServer(server.id);
     await refresh();
   });
 
@@ -60,7 +66,7 @@ function renderRow(server) {
   connect.className = 'connect-btn';
   connect.textContent = 'Connect';
   connect.addEventListener('click', async () => {
-    await invoke('connect_server', { url: server.url });
+    await bridge.connectServer(server.url);
   });
 
   li.append(avatar, info, remove, connect);
@@ -68,7 +74,7 @@ function renderRow(server) {
 }
 
 async function refresh() {
-  const servers = await invoke('list_servers');
+  const servers = await bridge.listServers();
   listEl.replaceChildren(...servers.map(renderRow));
   emptyEl.hidden = servers.length > 0;
 }
@@ -78,10 +84,7 @@ form.addEventListener('submit', async (event) => {
   clearError();
   addBtn.disabled = true;
   try {
-    await invoke('add_server', {
-      name: nameInput.value.trim() || urlInput.value.trim(),
-      url: urlInput.value.trim(),
-    });
+    await bridge.addServer(nameInput.value.trim() || urlInput.value.trim(), urlInput.value.trim());
     nameInput.value = '';
     urlInput.value = '';
     await refresh();
@@ -96,7 +99,7 @@ document.addEventListener('click', (event) => {
   const external = event.target.closest('[data-external]');
   if (external) {
     event.preventDefault();
-    opener.openUrl(external.dataset.external);
+    bridge.openExternal(external.dataset.external);
   }
 });
 
