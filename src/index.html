@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Hammerhead</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <header class="hero">
+        <div class="logo" aria-hidden="true">
+          <svg viewBox="0 0 64 64" width="72" height="72" role="img">
+            <path d="M32 14c-9 0-17 6-20 15-3 9-1 19 6 25 2 2 5 0 4-3-1-4-2-8-1-12 4 3 9 4 14 3 5 1 10 0 14-3 1 4 0 8-1 12-1 3 2 5 4 3 7-6 9-16 6-25-3-9-11-15-20-15z" fill="#4f8cff"/>
+            <path d="M22 40c3 3 7 5 11 5s8-2 11-5" stroke="#b6d2ff" stroke-width="2" fill="none" stroke-linecap="round"/>
+            <circle cx="26" cy="28" r="2.4" fill="#0b1220"/>
+            <circle cx="38" cy="28" r="2.4" fill="#0b1220"/>
+          </svg>
+        </div>
+        <h1>Hammerhead</h1>
+        <p class="tagline">Your servers. Native on your desktop.</p>
+      </header>
+
+      <section class="card">
+        <h2>Add a server</h2>
+        <form id="add-form">
+          <label>
+            <span>Name</span>
+            <input id="server-name" type="text" placeholder="My Sharkord" autocomplete="off" />
+          </label>
+          <label>
+            <span>Address</span>
+            <input id="server-url" type="text" placeholder="shark.example.com or localhost:4991" autocomplete="off" required />
+          </label>
+          <button type="submit" class="primary" id="add-btn">Add server</button>
+          <p id="form-error" class="error" hidden></p>
+        </form>
+      </section>
+
+      <section class="card">
+        <h2>Your servers</h2>
+        <ul id="server-list" class="server-list"></ul>
+        <p id="empty-state" class="empty" hidden>
+          No servers yet. Add your Sharkord instance above to get started.
+        </p>
+      </section>
+
+      <footer class="foot">
+        <span>Hammerhead for <a href="#" data-external="https://github.com/Sharkord/sharkord">Sharkord</a></span>
+        <span class="dim">Ctrl+Shift+H — switch servers</span>
+      </footer>
+    </main>
+    <script src="app.js"></script>
+  </body>
+</html>

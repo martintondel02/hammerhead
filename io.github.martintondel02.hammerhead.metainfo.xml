@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>io.github.martintondel02.hammerhead</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>MIT</project_license>
+  <name>Hammerhead</name>
+  <summary>Native desktop client for Sharkord</summary>
+  <description>
+    <p>
+      Hammerhead is a native desktop client for Sharkord, the lightweight
+      self-hosted chat platform with voice, video, and screen sharing.
+      Add your Sharkord servers and connect to them from a fast native
+      window instead of a browser tab.
+    </p>
+  </description>
+  <developer_name>martintondel02</developer_name>
+  <url type="homepage">https://github.com/martintondel02/hammerhead</url>
+  <url type="bugtracker">https://github.com/martintondel02/hammerhead/issues</url>
+  <url type="vcs-browser">https://github.com/martintondel02/hammerhead</url>
+  <launchable type="desktop-id">io.github.martintondel02.hammerhead.desktop</launchable>
+  <releases>
+    <release version="0.1.0" date="2026-09-12">
+      <description>
+        <ul>
+          <li>Initial release</li>
+          <li>Server picker with saved server list</li>
+          <li>Native window with window state persistence</li>
+          <li>Single-instance behavior</li>
+        </ul>
+      </description>
+    </release>
+  </releases>
+  <categories>
+    <category>Network</category>
+    <category>InstantMessaging</category>
+    <category>Chat</category>
+  </categories>
+  <requires>
+    <display_length compare="ge">500</display_length>
+  </requires>
+  <content_rating type="oars-1.1">
+    <content_attribute id="social-chat">intense</content_attribute>
+    <content_attribute id="social-audio">intense</content_attribute>
+    <content_attribute id="social-contacts">intense</content_attribute>
+  </content_rating>
+</component>

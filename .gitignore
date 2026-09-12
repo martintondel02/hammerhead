@@ -1,0 +1,21 @@
+# Rust
+src-tauri/target/
+src-tauri/gen/
+
+# Node
+node_modules/
+
+# Flatpak
+.flatpak-builder/
+.flatpak/
+build-dir/
+repo/
+
+# Editors
+.idea/
+.vscode/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db*.flatpak

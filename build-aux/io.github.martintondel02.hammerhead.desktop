@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=Hammerhead
+GenericName=Sharkord Client
+Comment=Chat with your self-hosted Sharkord servers
+Exec=hammerhead
+Icon=io.github.martintondel02.hammerhead
+Terminal=false
+Categories=Network;InstantMessaging;Chat;
+StartupWMClass=io.github.martintondel02.hammerhead
+MimeType=x-scheme-handler/hammerhead;
